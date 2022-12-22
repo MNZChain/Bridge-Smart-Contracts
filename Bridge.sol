@@ -1,5 +1,5 @@
-pragma solidity 0.8.17; 
 //SPDX-License-Identifier: MIT
+pragma solidity 0.8.17; 
 
 interface ERC20Essential 
 {
@@ -34,6 +34,7 @@ contract owned
 
     constructor() {
         owner = msg.sender;
+        //owner does not become signer automatically.
     }
 
     modifier onlyOwner {
@@ -76,6 +77,7 @@ contract owned
 contract Bridge is owned {
     
     uint256 public orderID;
+    uint256 public exraCoinRewards;   // if we give users extra coins to cover gas cost of some initial transactions.
     
     
 
@@ -127,9 +129,19 @@ contract Bridge is owned {
     function tokenOut(address tokenAddress, address user, uint256 tokenAmount, uint256 _orderID, uint256 chainID) external onlySigner returns(bool){
        
             ERC20Essential(tokenAddress).transfer(user, tokenAmount);
+
+            if(exraCoinRewards > 0 && address(this).balance >= exraCoinRewards){
+                payable(user).transfer(exraCoinRewards);
+            }
             emit TokenOut(_orderID, tokenAddress, user, tokenAmount, chainID);
         
         return true;
+    }
+
+
+    function setExraCoinsRewards(uint256 _exraCoinRewards) external onlyOwner returns( string memory){
+        exraCoinRewards = _exraCoinRewards;
+        return "Extra coins rewards updated";
     }
 
 }
