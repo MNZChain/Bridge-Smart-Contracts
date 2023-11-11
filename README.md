@@ -1,7 +1,7 @@
 # Bridge smart contracts:
 
 
-MainnetZ Bridge:  https://explorer.mainnetz.io/address/0xF27E6D1Bc001d1d132eEdF3a0d34187f7F300885
+MainnetZ Bridge:  https://explorer.mainnetz.io/address/0xAF84100B11999B1984555eb4dBbC10E8d77B3a46
 
 ETH bridge: https://etherscan.io/address/0xf27e6d1bc001d1d132eedf3a0d34187f7f300885
 
@@ -15,8 +15,8 @@ Polygon Bridge:  https://polygonscan.com/address/0x83d92a3EF1491B19978bf2EEaB63C
 
 # Pegged  Tokens smart contracts:
 
-ETH:  https://explorer.mainnetz.io/address/0x9d0C8C3657b8a26E28E54f487D7D6c14D68fDc02
+ETH:  https://explorer.mainnetz.io/address/0x69eec817a4666f52cdb4070108236cede91badf0
 
-BNB:  https://explorer.mainnetz.io/address/0x9A4c4B2CC31Bb4d9F4F5db1E95bDcbf66966Ebc8
+BNB:  https://explorer.mainnetz.io/address/0x7fd38ce75a988c95cba57977de9c1146eae69e08
 
-Matic:  https://explorer.mainnetz.io/address/0xFeB4Dc6b34328373AE45B5AE77db43b44245270F
+Matic:  https://explorer.mainnetz.io/address/0xd09235da61c257d6095e690f3179dc09f41eda61
