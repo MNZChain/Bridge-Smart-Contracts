@@ -78,6 +78,8 @@ contract Bridge is owned {
     
     uint256 public orderID;
     uint256 public exraCoinRewards;   // if we give users extra coins to cover gas cost of some initial transactions.
+
+    uint256 public batchThreshold = 50;
     
     
 
@@ -103,7 +105,16 @@ contract Bridge is owned {
         return true;
     }
     
-    function coinOut(address user, uint256 amount, uint256 _orderID) external onlySigner returns(bool){
+    function batchCoinOut(address[] memory users, uint256[] memory amounts, uint256[] memory _orderIDs) external onlySigner returns(bool){
+        require(users.length == amounts.length && users.length == _orderIDs.length, "Data lengths don't match");
+        require(users.length < batchThreshold, "greater than batch threshold");
+        for(uint8 index = 0; index < users.length; index++){
+            coinOut(users[index], amounts[index], _orderIDs[index]);
+        }
+        return true;
+    }
+
+    function coinOut(address user, uint256 amount, uint256 _orderID) public onlySigner returns(bool){
         
             payable(user).transfer(amount);
             emit CoinOut(_orderID, user, amount);
@@ -125,8 +136,17 @@ contract Bridge is owned {
         return true;
     }
     
-    
-    function tokenOut(address tokenAddress, address user, uint256 tokenAmount, uint256 _orderID, uint256 chainID) external onlySigner returns(bool){
+    function batchTokenOut(address[] memory tokenAddresses, address[] memory users, uint256[] memory tokenAmounts, uint256[] memory _orderIDs, uint256[] memory chainIDs) onlySigner external returns (bool){
+        require(tokenAddresses.length == users.length && tokenAddresses.length == tokenAmounts.length && tokenAddresses.length == _orderIDs.length && tokenAddresses.length == chainIDs.length, "Data length don't match");
+        require(tokenAddresses.length < batchThreshold, "greater than batch threshold");
+        
+        for(uint256 index = 0; index < tokenAddresses.length; index++){
+            tokenOut(tokenAddresses[index], users[index], tokenAmounts[index], _orderIDs[index], chainIDs[index]);
+        }
+        return true;
+    }
+
+    function tokenOut(address tokenAddress, address user, uint256 tokenAmount, uint256 _orderID, uint256 chainID) public onlySigner returns(bool){
        
             ERC20Essential(tokenAddress).transfer(user, tokenAmount);
 
@@ -142,6 +162,12 @@ contract Bridge is owned {
     function setExraCoinsRewards(uint256 _exraCoinRewards) external onlyOwner returns( string memory){
         exraCoinRewards = _exraCoinRewards;
         return "Extra coins rewards updated";
+    }
+
+    function setBatchThreshold(uint256 _value) external onlyOwner returns(uint256 newValue){
+        require(_value > 0, "zero value given");
+        batchThreshold = _value;
+        newValue = batchThreshold;
     }
 
 }
