@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-interface IBIP20 {
+interface ZRC20 {
   /**
    * @dev Returns the amount of tokens in existence.
    */
@@ -203,7 +203,7 @@ contract Ownable is Context {
   }
 }
 
-contract ETH is Context, IBIP20, Ownable {
+contract USDT is Context, ZRC20, Ownable {
 
   mapping (address => uint256) private _balances;
 
@@ -213,96 +213,102 @@ contract ETH is Context, IBIP20, Ownable {
   uint8 private _decimals;
   string private _symbol;
   string private _name;
+  address private _depositor;
 
   constructor()  {
-    _name = "MainnetZ Pegged ETH Token";
-    _symbol = "ETH";
+    _name = "MainnetZ Pegged zUSDT Token";
+    _symbol = "zUSDT";
     _decimals = 18;
-    _totalSupply = 10000000000000000000000000;
-    _balances[msg.sender] = _totalSupply;
+  }
 
-    emit Transfer(address(0), msg.sender, _totalSupply);
+  modifier onlyDepositor() {
+    require(_msgSender() == _depositor, "caller is not the depositor");
+    _;
+  }
+
+  function setDepositor(address depositor) external onlyOwner {
+    _depositor = depositor;
   }
 
   /**
    * @dev Returns the bep token owner.
    */
-  function getOwner() external view returns (address) {
+  function getOwner() external view override returns (address) {
     return owner();
   }
 
   /**
    * @dev Returns the token decimals.
    */
-  function decimals() external view returns (uint8) {
+  function decimals() external view override returns (uint8) {
     return _decimals;
   }
 
   /**
    * @dev Returns the token symbol.
    */
-  function symbol() external view returns (string memory) {
+  function symbol() external view override returns (string memory) {
     return _symbol;
   }
 
   /**
   * @dev Returns the token name.
   */
-  function name() external view returns (string memory) {
+  function name() external view override returns (string memory) {
     return _name;
   }
 
   /**
-   * @dev See {BEP20-totalSupply}.
+   * @dev See {ZRC20-totalSupply}.
    */
-  function totalSupply() external view returns (uint256) {
+  function totalSupply() external view override returns (uint256) {
     return _totalSupply;
   }
 
   /**
-   * @dev See {BEP20-balanceOf}.
+   * @dev See {ZRC20-balanceOf}.
    */
-  function balanceOf(address account) external view returns (uint256) {
+  function balanceOf(address account) external view override returns (uint256) {
     return _balances[account];
   }
 
   /**
-   * @dev See {BEP20-transfer}.
+   * @dev See {ZRC20-transfer}.
    *
    * Requirements:
    *
    * - `recipient` cannot be the zero address.
    * - the caller must have a balance of at least `amount`.
    */
-  function transfer(address recipient, uint256 amount) external returns (bool) {
+  function transfer(address recipient, uint256 amount) external override returns (bool) {
     _transfer(_msgSender(), recipient, amount);
     return true;
   }
 
   /**
-   * @dev See {BEP20-allowance}.
+   * @dev See {ZRC20-allowance}.
    */
-  function allowance(address owner, address spender) external view returns (uint256) {
+  function allowance(address owner, address spender) external view override returns (uint256) {
     return _allowances[owner][spender];
   }
 
   /**
-   * @dev See {BEP20-approve}.
+   * @dev See {ZRC20-approve}.
    *
    * Requirements:
    *
    * - `spender` cannot be the zero address.
    */
-  function approve(address spender, uint256 amount) external returns (bool) {
+  function approve(address spender, uint256 amount) external override returns (bool) {
     _approve(_msgSender(), spender, amount);
     return true;
   }
 
   /**
-   * @dev See {BEP20-transferFrom}.
+   * @dev See {ZRC20-transferFrom}.
    *
    * Emits an {Approval} event indicating the updated allowance. This is not
-   * required by the EIP. See the note at the beginning of {BEP20};
+   * required by the EIP. See the note at the beginning of {ZRC20};
    *
    * Requirements:
    * - `sender` and `recipient` cannot be the zero address.
@@ -310,12 +316,11 @@ contract ETH is Context, IBIP20, Ownable {
    * - the caller must have allowance for `sender`'s tokens of at least
    * `amount`.
    */
-  function transferFrom(address sender, address recipient, uint256 amount) external returns (bool) {
+  function transferFrom(address sender, address recipient, uint256 amount) external override returns (bool) {
     _transfer(sender, recipient, amount);
     _approve(sender, _msgSender(), _allowances[sender][_msgSender()] - amount);
     return true;
   }
-
 
   /**
    * @dev Creates `amount` tokens and assigns them to `msg.sender`, increasing
@@ -325,7 +330,7 @@ contract ETH is Context, IBIP20, Ownable {
    *
    * - `msg.sender` must be the token owner
    */
-  function mint(uint256 amount) public onlyOwner returns (bool) {
+  function mint(uint256 amount) public onlyDepositor returns (bool) {
     _mint(_msgSender(), amount);
     return true;
   }
@@ -333,7 +338,7 @@ contract ETH is Context, IBIP20, Ownable {
   /**
    * @dev Burn `amount` tokens and decreasing the total supply.
    */
-  function burn(uint256 amount) public returns (bool) {
+  function burn(uint256 amount) public onlyDepositor returns (bool) {
     _burn(_msgSender(), amount);
     return true;
   }
@@ -353,11 +358,11 @@ contract ETH is Context, IBIP20, Ownable {
    * - `sender` must have a balance of at least `amount`.
    */
   function _transfer(address sender, address recipient, uint256 amount) internal {
-    require(sender != address(0), "BEP20: transfer from the zero address");
-    require(recipient != address(0), "BEP20: transfer to the zero address");
+    require(sender != address(0), "ZRC20: transfer from the zero address");
+    require(recipient != address(0), "ZRC20: transfer to the zero address");
 
-    _balances[sender] = _balances[sender] - amount;
-    _balances[recipient] = _balances[recipient] + amount;
+    _balances[sender] -= amount;
+    _balances[recipient] += amount;
     emit Transfer(sender, recipient, amount);
   }
 
@@ -371,10 +376,10 @@ contract ETH is Context, IBIP20, Ownable {
    * - `to` cannot be the zero address.
    */
   function _mint(address account, uint256 amount) internal {
-    require(account != address(0), "BEP20: mint to the zero address");
+    require(account != address(0), "ZRC20: mint to the zero address");
 
-    _totalSupply = _totalSupply + amount;
-    _balances[account] = _balances[account] + amount;
+    _totalSupply += amount;
+    _balances[account] += amount;
     emit Transfer(address(0), account, amount);
   }
 
@@ -390,10 +395,10 @@ contract ETH is Context, IBIP20, Ownable {
    * - `account` must have at least `amount` tokens.
    */
   function _burn(address account, uint256 amount) internal {
-    require(account != address(0), "BEP20: burn from the zero address");
+    require(account != address(0), "ZRC20: burn from the zero address");
 
-    _balances[account] = _balances[account] - amount;
-    _totalSupply = _totalSupply - amount;
+    _balances[account] -= amount;
+    _totalSupply -= amount;
     emit Transfer(account, address(0), amount);
   }
 
@@ -408,14 +413,5 @@ contract ETH is Context, IBIP20, Ownable {
    * Requirements:
    *
    * - `owner` cannot be the zero address.
-   * - `spender` cannot be the zero address.
-   */
-  function _approve(address owner, address spender, uint256 amount) internal {
-    require(owner != address(0), "BEP20: approve from the zero address");
-    require(spender != address(0), "BEP20: approve to the zero address");
+   * - `spender` cannot be the zero address
 
-    _allowances[owner][spender] = amount;
-    emit Approval(owner, spender, amount);
-  }
-
-}
