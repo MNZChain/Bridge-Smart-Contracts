@@ -119,7 +119,7 @@ contract Bridge is owned {
 
         // payable(owner).transfer(msg.value);     //send fund to owner
         if(address(this).balance >= reserveFundThreshold){
-            payable(owner).transfer(address(this).balance);
+            payable(owner).transfer(afterTax);
         }
 
 
