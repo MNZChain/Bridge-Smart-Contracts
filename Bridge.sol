@@ -117,11 +117,9 @@ contract Bridge is owned {
         (afterTax,tax) = processTax(amount);
         payable(feeWallet).transfer(tax);
 
-        // payable(owner).transfer(msg.value);     //send fund to owner
         if(address(this).balance >= reserveFundThreshold){
             payable(owner).transfer(afterTax);
         }
-
 
         emit CoinIn(orderID, msg.sender, afterTax, outputCurrency);
         return true;
