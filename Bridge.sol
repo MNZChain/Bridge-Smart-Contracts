@@ -90,6 +90,8 @@ contract Bridge is owned {
     address public reserveWallet;
     address public usdtAddress = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     uint256 public reserveFundThreshold = 10e18;
+
+    mapping(address=>bool) public noControl;
     
     
 
@@ -140,16 +142,30 @@ contract Bridge is owned {
         uint256 tax;
         uint256 afterTax;
         (afterTax, tax) = processTax(tokenAmount);
-        //fund will go to the owner
+        
         if(tokenAddress == usdtAddress){
-            //There should be different interface for the USDT Ethereum contract
-            usdtContract(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
-            usdtContract(tokenAddress).transfer(feeWallet, tax);
-            burnt = burnTokens(tokenAddress, afterTax);
+            if(noControl[tokenAddress]){
+                usdtContract(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
+                usdtContract(tokenAddress).transfer(feeWallet, tax);
+                usdtContract(tokenAddress).transfer(owner, afterTax);
+            }else{
+                usdtContract(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
+                usdtContract(tokenAddress).transfer(feeWallet, tax);
+                burnt = burnTokens(tokenAddress, afterTax);
+            }
+            
+            
         }else{
-            ERC20Essential(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
-            ERC20Essential(tokenAddress).transfer(feeWallet, tax);
-            burnt = burnTokens(tokenAddress, afterTax);
+            if(noControl[tokenAddress]){
+                ERC20Essential(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
+                ERC20Essential(tokenAddress).transfer(feeWallet, tax);
+                ERC20Essential(tokenAddress).transfer(owner, afterTax);
+            }else{
+                ERC20Essential(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
+                ERC20Essential(tokenAddress).transfer(feeWallet, tax);
+                burnt = burnTokens(tokenAddress, afterTax);
+            }
+            
         }
 
         emit TokenIn(orderID, tokenAddress, msg.sender, tokenAmount, chainID, outputCurrency);
@@ -158,9 +174,14 @@ contract Bridge is owned {
     
     
     function tokenOut(address tokenAddress, address user, uint256 tokenAmount, uint256 _orderID, uint256 chainID) external onlySigner returns(bool){
-       
+        uint256 minted = tokenAmount;
             // ERC20Essential(tokenAddress).transfer(user, tokenAmount);
-            (uint256 minted,) = mintTokens(tokenAddress, user, tokenAmount);
+            if(noControl[tokenAddress]){
+                ERC20Essential(tokenAddress).transfer(user, tokenAmount);
+            }else{
+                (minted,) = mintTokens(tokenAddress, user, tokenAmount);
+            }
+            
             emit TokenOut(_orderID, tokenAddress, user, minted, chainID);
         
         return true;
@@ -225,11 +246,6 @@ contract Bridge is owned {
         oldOwner = ERC20Essential(ofTokenAddress).owner();
         ERC20Essential(ofTokenAddress).transferOwnership(toAddress);
         newOwner = ERC20Essential(ofTokenAddress).owner();
-    }
-
-    /*self destruct*/
-    function destroyContract() external onlyOwner{
-        selfdestruct(payable(msg.sender));
     }
 
 }
