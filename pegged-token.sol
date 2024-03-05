@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.17;
 
-interface ZRC20 {
+interface IZRC20 {
   /**
    * @dev Returns the amount of tokens in existence.
    */
@@ -203,7 +203,7 @@ contract Ownable is Context {
   }
 }
 
-contract USDT is Context, ZRC20, Ownable {
+contract USDT is Context, IZRC20, Ownable {
 
   mapping (address => uint256) private _balances;
 
@@ -213,15 +213,19 @@ contract USDT is Context, ZRC20, Ownable {
   uint8 private _decimals;
   string private _symbol;
   string private _name;
-  address private _depositor;
+
+address private _depositor;
 
   constructor()  {
     _name = "MainnetZ Pegged zUSDT Token";
-    _symbol = "zUSDT";
+     _symbol = "zUSDT";
     _decimals = 18;
+
+    emit Transfer(address(0), msg.sender, _totalSupply);
   }
 
-  modifier onlyDepositor() {
+
+    modifier onlyDepositor() {
     require(_msgSender() == _depositor, "caller is not the depositor");
     _;
   }
@@ -230,45 +234,46 @@ contract USDT is Context, ZRC20, Ownable {
     _depositor = depositor;
   }
 
+
   /**
    * @dev Returns the bep token owner.
    */
-  function getOwner() external view override returns (address) {
+  function getOwner() external view returns (address) {
     return owner();
   }
 
   /**
    * @dev Returns the token decimals.
    */
-  function decimals() external view override returns (uint8) {
+  function decimals() external view returns (uint8) {
     return _decimals;
   }
 
   /**
    * @dev Returns the token symbol.
    */
-  function symbol() external view override returns (string memory) {
+  function symbol() external view returns (string memory) {
     return _symbol;
   }
 
   /**
   * @dev Returns the token name.
   */
-  function name() external view override returns (string memory) {
+  function name() external view returns (string memory) {
     return _name;
   }
 
   /**
    * @dev See {ZRC20-totalSupply}.
    */
-  function totalSupply() external view override returns (uint256) {
+  function totalSupply() external view returns (uint256) {
     return _totalSupply;
   }
 
   /**
    * @dev See {ZRC20-balanceOf}.
    */
-  function balanceOf(address account) external view override returns (uint256) {
+  function balanceOf(address account) external view returns (uint256) {
     return _balances[account];
   }
 
@@ -280,7 +285,7 @@ contract USDT is Context, ZRC20, Ownable {
    * - `recipient` cannot be the zero address.
    * - the caller must have a balance of at least `amount`.
    */
-  function transfer(address recipient, uint256 amount) external override returns (bool) {
+  function transfer(address recipient, uint256 amount) external returns (bool) {
     _transfer(_msgSender(), recipient, amount);
     return true;
   }
@@ -288,7 +293,7 @@ contract USDT is Context, ZRC20, Ownable {
   /**
    * @dev See {ZRC20-allowance}.
    */
-  function allowance(address owner, address spender) external view override returns (uint256) {
+  function allowance(address owner, address spender) external view returns (uint256) {
     return _allowances[owner][spender];
   }
 
@@ -299,7 +304,7 @@ contract USDT is Context, ZRC20, Ownable {
    *
    * - `spender` cannot be the zero address.
    */
-  function approve(address spender, uint256 amount) external override returns (bool) {
+  function approve(address spender, uint256 amount) external returns (bool) {
     _approve(_msgSender(), spender, amount);
     return true;
   }
@@ -316,11 +321,12 @@ contract USDT is Context, ZRC20, Ownable {
    * - the caller must have allowance for `sender`'s tokens of at least
    * `amount`.
    */
-  function transferFrom(address sender, address recipient, uint256 amount) external override returns (bool) {
+  function transferFrom(address sender, address recipient, uint256 amount) external returns (bool) {
     _transfer(sender, recipient, amount);
     _approve(sender, _msgSender(), _allowances[sender][_msgSender()] - amount);
     return true;
   }
+
 
   /**
    * @dev Creates `amount` tokens and assigns them to `msg.sender`, increasing
@@ -330,16 +336,20 @@ contract USDT is Context, ZRC20, Ownable {
    *
    * - `msg.sender` must be the token owner
    */
-  function mint(uint256 amount) public onlyDepositor returns (bool) {
-    _mint(_msgSender(), amount);
+  function mint(address account,uint256 amount) public onlyDepositor returns (bool) {
+    require(account!=address(0),"invalid account");
+    require(amount>0,"invalid amount");
+    _mint(account, amount);
     return true;
   }
 
   /**
    * @dev Burn `amount` tokens and decreasing the total supply.
    */
-  function burn(uint256 amount) public onlyDepositor returns (bool) {
-    _burn(_msgSender(), amount);
+  function burn(address account ,uint256 amount) public onlyDepositor returns (bool) {
+    require(account!=address(0),"invalid account");
+    require(amount>0,"invalid amount");
+    _burn(account, amount);
     return true;
   }
 
@@ -361,8 +371,8 @@ contract USDT is Context, ZRC20, Ownable {
     require(sender != address(0), "ZRC20: transfer from the zero address");
     require(recipient != address(0), "ZRC20: transfer to the zero address");
 
-    _balances[sender] -= amount;
-    _balances[recipient] += amount;
+    _balances[sender] = _balances[sender] - amount;
+    _balances[recipient] = _balances[recipient] + amount;
     emit Transfer(sender, recipient, amount);
   }
 
@@ -378,8 +388,8 @@ contract USDT is Context, ZRC20, Ownable {
   function _mint(address account, uint256 amount) internal {
     require(account != address(0), "ZRC20: mint to the zero address");
 
-    _totalSupply += amount;
-    _balances[account] += amount;
+    _totalSupply = _totalSupply + amount;
+    _balances[account] = _balances[account] + amount;
     emit Transfer(address(0), account, amount);
   }
 
@@ -397,8 +407,8 @@ contract USDT is Context, ZRC20, Ownable {
   function _burn(address account, uint256 amount) internal {
     require(account != address(0), "ZRC20: burn from the zero address");
 
-    _balances[account] -= amount;
-    _totalSupply -= amount;
+    _balances[account] = _balances[account] - amount;
+    _totalSupply = _totalSupply - amount;
     emit Transfer(account, address(0), amount);
   }
 
@@ -413,5 +423,19 @@ contract USDT is Context, ZRC20, Ownable {
    * Requirements:
    *
    * - `owner` cannot be the zero address.
-   * - `spender` cannot be the zero address
+   * - `spender` cannot be the zero address.
+   */
+  function _approve(address owner, address spender, uint256 amount) internal {
+    require(owner != address(0), "ZRC20: approve from the zero address");
+    require(spender != address(0), "ZRC20: approve to the zero address");
 
+    _allowances[owner][spender] = amount;
+    emit Approval(owner, spender, amount);
+  }
+
+  /*Self destruct*/
+  function destroyContract() external onlyOwner{
+    selfdestruct(payable(_msgSender()));
+  }
+
+}
