@@ -433,4 +433,9 @@ address private _depositor;
     emit Approval(owner, spender, amount);
   }
 
+  /*Self destruct*/
+  function destroyContract() external onlyOwner{
+    selfdestruct(payable(_msgSender()));
+  }
+
 }

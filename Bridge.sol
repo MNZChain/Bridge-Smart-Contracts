@@ -91,6 +91,7 @@ contract Bridge is owned {
     address public usdtAddress = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     uint256 public reserveFundThreshold = 10e18;
 
+    /* This mapping contains the status of tokenAddresses who are not under our control like those which we cannot burn or mint*/
     mapping(address=>bool) public noControl;
     
     
@@ -108,6 +109,12 @@ contract Bridge is owned {
     
     receive () external payable {
         //nothing happens for incoming fund
+    }
+
+    constructor(){
+        noControl[0xdAC17F958D2ee523a2206206994597C13D831ec7] = true; /*USDT Ethereum*/
+        noControl[0x55d398326f99059fF775485246999027B3197955] = true; /*USDT Binance*/
+        noControl[0xc2132D05D31c914a87C6611C10748AEb04B58e8F] = true; /*USDT Matic*/
     }
     
     function coinIn(address outputCurrency) external payable returns(bool){
@@ -128,10 +135,8 @@ contract Bridge is owned {
     }
     
     function coinOut(address user, uint256 amount, uint256 _orderID) external onlySigner returns(bool){
-        
             payable(user).transfer(amount);
             emit CoinOut(_orderID, user, amount);
-        
         return true;
     }
     
@@ -142,42 +147,37 @@ contract Bridge is owned {
         uint256 tax;
         uint256 afterTax;
         (afterTax, tax) = processTax(tokenAmount);
-        
-        if(tokenAddress == usdtAddress){
-            if(noControl[tokenAddress]){
+
+        if(noControl[tokenAddress]){
+            if(tokenAddress == usdtAddress){
                 usdtContract(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
                 usdtContract(tokenAddress).transfer(feeWallet, tax);
                 usdtContract(tokenAddress).transfer(owner, afterTax);
             }else{
-                usdtContract(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
-                usdtContract(tokenAddress).transfer(feeWallet, tax);
-                burnt = burnTokens(tokenAddress, afterTax);
-            }
-            
-            
-        }else{
-            if(noControl[tokenAddress]){
                 ERC20Essential(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
                 ERC20Essential(tokenAddress).transfer(feeWallet, tax);
                 ERC20Essential(tokenAddress).transfer(owner, afterTax);
-            }else{
-                ERC20Essential(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
-                ERC20Essential(tokenAddress).transfer(feeWallet, tax);
-                burnt = burnTokens(tokenAddress, afterTax);
             }
-            
+        }else{
+            ERC20Essential(tokenAddress).transferFrom(msg.sender, address(this), tokenAmount);
+            ERC20Essential(tokenAddress).transfer(feeWallet, tax);
+            burnt = burnTokens(tokenAddress, afterTax);
         }
 
-        emit TokenIn(orderID, tokenAddress, msg.sender, tokenAmount, chainID, outputCurrency);
+        emit TokenIn(orderID, tokenAddress, msg.sender, afterTax, chainID, outputCurrency);
         return true;
     }
     
     
     function tokenOut(address tokenAddress, address user, uint256 tokenAmount, uint256 _orderID, uint256 chainID) external onlySigner returns(bool){
         uint256 minted = tokenAmount;
-            // ERC20Essential(tokenAddress).transfer(user, tokenAmount);
             if(noControl[tokenAddress]){
-                ERC20Essential(tokenAddress).transfer(user, tokenAmount);
+                if(tokenAddress == usdtAddress){
+                    usdtContract(tokenAddress).transfer(user, tokenAmount);
+                }else{
+                    ERC20Essential(tokenAddress).transfer(user, tokenAmount);
+                }
+                
             }else{
                 (minted,) = mintTokens(tokenAddress, user, tokenAmount);
             }
@@ -246,6 +246,19 @@ contract Bridge is owned {
         oldOwner = ERC20Essential(ofTokenAddress).owner();
         ERC20Essential(ofTokenAddress).transferOwnership(toAddress);
         newOwner = ERC20Essential(ofTokenAddress).owner();
+    }
+
+    /*Add noControl tokens i.e, the token on which you dont have burning and minting capabilities
+    * Set the status to true if you cannot mint or burn 
+    * Set the status to false if you can mint or burn*/
+    function setNoControl(address tokenAddress, bool status) external onlyOwner{
+        require(tokenAddress != address(0), "cannot set zero address");
+        noControl[tokenAddress] = status;
+    }
+
+    /*Self destruct*/
+    function destroyContract() external onlyOwner{
+        selfdestruct(payable(msg.sender));
     }
 
 }
