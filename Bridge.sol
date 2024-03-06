@@ -256,9 +256,5 @@ contract Bridge is owned {
         noControl[tokenAddress] = status;
     }
 
-    /*Self destruct*/
-    function destroyContract() external onlyOwner{
-        selfdestruct(payable(msg.sender));
-    }
 
 }
